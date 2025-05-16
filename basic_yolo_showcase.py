@@ -13,11 +13,11 @@ class YOLOShowcase:
         # Load YOLO models for different tasks
         print("Loading YOLO models...")
         self.models = {
-            "detect": YOLO("yolov8n.pt"),
-            "segment": YOLO("yolov8n-seg.pt"),
-            "classify": YOLO("yolov8n-cls.pt"),
-            "pose": YOLO("yolov8n-pose.pt"),
-            "obb": YOLO("yolov8n-obb.pt")
+            "detect": YOLO("yolo11n.pt"),
+            "segment": YOLO("yolo11n-seg.pt"),
+            "classify": YOLO("yolo11n-cls.pt"),
+            "pose": YOLO("yolo11n-pose.pt"),
+            "obb": YOLO("yolo11n-obb.pt")
         }
         print("Models loaded successfully!")
         
