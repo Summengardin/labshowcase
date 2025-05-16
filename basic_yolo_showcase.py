@@ -247,14 +247,37 @@ class YOLOShowcase:
 def main():
     # Parse arguments
     parser = argparse.ArgumentParser(description="YOLO Showcase")
-    parser.add_argument('--source', type=str, default='0', help='Source (webcam index, video file, or image file)')
+    parser.add_argument('--source', type=str, default='0', help='Source (webcam index, video file, image file, or RTSP URL)')
+    parser.add_argument('--rtsp', action='store_true', help='Use RTSP frame grabber for better handling of RTSP streams')
+    parser.add_argument('--buffer-size', type=int, default=10, help='Buffer size for RTSP frame grabber')
+    parser.add_argument('--reconnect-attempts', type=int, default=5, help='Number of reconnection attempts for RTSP')
     args = parser.parse_args()
     
     # Initialize YOLO showcase
     showcase = YOLOShowcase()
     
+    # Check if using RTSP frame grabber
+    using_rtsp_grabber = False
+    
     # Open video source
-    if args.source.isdigit():
+    if args.rtsp or (args.source.startswith('rtsp://') or args.source.startswith('rtsps://')):
+        try:
+            # Import RTSP Frame Grabber
+            from rtsp_frame_grabber import RTSPFrameGrabber
+            
+            # Use RTSP Frame Grabber for RTSP streams
+            print(f"Using RTSP Frame Grabber for source: {args.source}")
+            cap = RTSPFrameGrabber(
+                args.source,
+                buffer_size=args.buffer_size,
+                reconnect_attempts=args.reconnect_attempts
+            )
+            cap.start()
+            using_rtsp_grabber = True
+        except ImportError:
+            print("RTSP Frame Grabber not available, falling back to OpenCV")
+            cap = cv2.VideoCapture(args.source)
+    elif args.source.isdigit():
         # Webcam
         cap = cv2.VideoCapture(int(args.source))
     else:
@@ -305,7 +328,10 @@ def main():
             showcase.switch_task("obb")
     
     # Clean up
-    cap.release()
+    if using_rtsp_grabber:
+        cap.stop()
+    else:
+        cap.release()
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":
