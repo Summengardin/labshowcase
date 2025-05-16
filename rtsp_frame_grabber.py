@@ -21,6 +21,7 @@ class RTSPFrameGrabber:
         
         # Create frame buffer queue
         self.frame_buffer = queue.Queue(maxsize=buffer_size)
+        self.last_frame = None
         
         # Stream properties
         self.cap = None
@@ -145,9 +146,10 @@ class RTSPFrameGrabber:
             # Add frame to buffer, drop oldest if full
             try:
                 if self.frame_buffer.full():
-                    self.frame_buffer.get_nowait()  # Drop oldest frame
+                    self.frame_buffer.get_nowait()  # Drop oldest frame                   
                     self.dropped_frames += 1
-                
+                    
+                self.last_frame = frame
                 self.frame_buffer.put_nowait(frame)
                 self.frame_available = True
             except queue.Full:
@@ -163,7 +165,10 @@ class RTSPFrameGrabber:
             return False, None
         
         try:
-            frame = self.frame_buffer.get_nowait()
+            
+            # frame = self.frame_buffer.get_nowait()
+            frame = self.last_frame.copy()  # Return a copy of the last frame
+
             return True, frame
         except queue.Empty:
             return False, None
