@@ -122,9 +122,15 @@ class YOLOShowcase:
                     # Draw pose keypoints and connections
                     if hasattr(result, 'keypoints') and result.keypoints is not None:
                         for kpt in result.keypoints.data:
-                            # Draw keypoints
-                            for p in kpt:
-                                if p[2] > 0:  # Visibility check
+                            # Set confidence threshold for keypoints
+                            confidence_threshold = 0.5
+                            
+                            # Create keypoint visibility mask based on confidence
+                            visible = kpt[:, 2] > confidence_threshold
+                            
+                            # Draw keypoints with sufficient confidence
+                            for i, p in enumerate(kpt):
+                                if visible[i]:  # Only draw if keypoint passes confidence check
                                     x, y = int(p[0]), int(p[1])
                                     cv2.circle(result_frame, (x, y), 3, self.colors[self.current_task], -1)
                             
@@ -137,13 +143,21 @@ class YOLOShowcase:
                                 (11, 13), (13, 15), (12, 14), (14, 16)  # Legs
                             ]
                             
+                            # Only draw connections if both keypoints have sufficient confidence
                             for connection in connections:
                                 p1_idx, p2_idx = connection
                                 if p1_idx < len(kpt) and p2_idx < len(kpt):
-                                    if kpt[p1_idx][2] > 0 and kpt[p2_idx][2] > 0:
+                                    if visible[p1_idx] and visible[p2_idx]:
                                         p1 = (int(kpt[p1_idx][0]), int(kpt[p1_idx][1]))
                                         p2 = (int(kpt[p2_idx][0]), int(kpt[p2_idx][1]))
-                                        cv2.line(result_frame, p1, p2, self.colors[self.current_task], 2)
+                                        
+                                        # Additional sanity check - skip lines that are too long
+                                        # (often indicates false connections)
+                                        distance = np.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
+                                        max_reasonable_distance = frame.shape[1] * 0.7  # 70% of frame width
+                                        
+                                        if distance < max_reasonable_distance:
+                                            cv2.line(result_frame, p1, p2, self.colors[self.current_task], 2)
                 
                 elif self.current_task == "obb":
                     # Draw oriented bounding boxes
